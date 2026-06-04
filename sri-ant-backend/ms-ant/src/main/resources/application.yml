@@ -1,0 +1,42 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: ms-ant
+
+  # ── Redis Cloud (Upstash o Redis Enterprise Cloud) ─────────────────────────
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL:false}   # true en producción con Redis Cloud
+
+# ── ANT ────────────────────────────────────────────────────────────────────────
+ant:
+  base-url: https://consultaweb.ant.gob.ec/PortalWEB/paginas/clientes/clp_grid_citaciones.jsp
+  timeout-seconds: 3           # ANT tiene baja disponibilidad — timeout corto
+  cache-ttl-hours: 24          # TTL caché Redis en horas
+
+# ── Resilience4j ───────────────────────────────────────────────────────────────
+resilience4j:
+  circuitbreaker:
+    instances:
+      ant-cb:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+  retry:
+    instances:
+      ant-retry:
+        max-attempts: 2
+        wait-duration: 500ms
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,circuitbreakers

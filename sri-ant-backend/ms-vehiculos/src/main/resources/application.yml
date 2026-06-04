@@ -1,0 +1,16 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: ms-vehiculos
+
+sri:
+  vehiculos-url: https://srienlinea.sri.gob.ec/sri-matriculacion-vehicular-recaudacion-servicio-internet/rest/BaseVehiculo
+  timeout-seconds: 10
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

@@ -1,0 +1,82 @@
+version: '3.9'
+
+# ─────────────────────────────────────────────────────────────────────────────
+# docker-compose.yml
+# Levanta: Redis, MS-SRI, MS-Vehículos, MS-ANT, API Gateway y Frontend React
+#
+# Uso:
+#   docker-compose up --build
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Redis (caché Cloud local para desarrollo) ────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ── Microservicio SRI ─────────────────────────────────────────────────────
+  ms-sri:
+    build:
+      context: ./ms-sri
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Microservicio Vehículos ───────────────────────────────────────────────
+  ms-vehiculos:
+    build:
+      context: ./ms-vehiculos
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Microservicio ANT + Redis ─────────────────────────────────────────────
+  ms-ant:
+    build:
+      context: ./ms-ant
+      dockerfile: Dockerfile
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      # Para Redis Cloud en producción:
+      # - REDIS_HOST=your-redis-host.upstash.io
+      # - REDIS_PASSWORD=your-redis-password
+      # - REDIS_SSL=true
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  redis_data:
